@@ -175,7 +175,23 @@ def handle_upload():
         return redirect('/upload')
 
     file_name = secure_filename(file.filename)
-    file.save(os.path.join("./uploads", file_name))
+    
+    try:
+        user_avatar = current_user.get_avatar()
+
+        try:
+            if user_avatar != 'default.jpg':
+                id = mongo.db.fs.files.find_one({"filename": user_avatar}).get('_id')
+                mongo.db.fs.chunks.remove({'files_id': id})
+                mongo.db.fs.files.remove({'_id': id})
+        except:
+            flash("Avatar is not in database!!!")
+
+        mongo.save_file(file_name, file)
+        current_user.set_avatar(file_name)
+    except:
+        flash("Error saving file!!!")
+        return redirect('/upload')
     
     flash("Success!!!")
     return redirect('/upload')
